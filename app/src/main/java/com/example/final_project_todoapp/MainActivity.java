@@ -32,21 +32,16 @@ public class MainActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
 
-        // Khởi tạo DatabaseHelper
         databaseHelper = new DatabaseHelper(this);
 
-        // Lấy danh sách nhiệm vụ từ cơ sở dữ liệu
         taskList = databaseHelper.getAllTasks();
 
-        // Thiết lập RecyclerView
         recyclerView = findViewById(R.id.recyclerview);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
-        // Tạo và thiết lập Adapter
-        taskAdapter = new TaskAdapter(taskList,databaseHelper, this);
+        taskAdapter = new TaskAdapter(taskList, databaseHelper, this);
         recyclerView.setAdapter(taskAdapter);
 
-        // FloatingActionButton để thêm nhiệm vụ mới
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(v -> showAddTaskDialog());
     }
@@ -62,11 +57,7 @@ public class MainActivity extends AppCompatActivity {
 
         builder.setPositiveButton("Add", (dialog, which) -> {
             String taskName = inputTask.getText().toString().trim();
-            if (!taskName.isEmpty()) {
-                addNewTask(taskName);
-            } else {
-                Toast.makeText(MainActivity.this, "Vui lòng nhập tên nhiệm vụ", Toast.LENGTH_SHORT).show();
-            }
+            addNewTask(taskName);
         });
 
         builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
@@ -75,11 +66,22 @@ public class MainActivity extends AppCompatActivity {
         dialog.show();
     }
 
-    // Thêm nhiệm vụ mới vào cơ sở dữ liệu và cập nhật giao diện
     private void addNewTask(String taskName) {
-        Task newTask = new Task(taskList.size() + 1, taskName, 0); // Mặc định trạng thái là 0
+        if (taskName.isEmpty()) {
+            Toast.makeText(MainActivity.this, "Please enter task", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        for (Task task : taskList) {
+            if (task.getName().equalsIgnoreCase(taskName)) {
+                Toast.makeText(MainActivity.this, "The task already exists.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+        }
+
+        Task newTask = new Task(taskList.size() + 1, taskName, 0);
         databaseHelper.addTask(newTask);
         taskList.add(newTask);
         taskAdapter.notifyItemInserted(taskList.size() - 1);
+        Toast.makeText(MainActivity.this, "Task added successfully", Toast.LENGTH_SHORT).show();
     }
 }

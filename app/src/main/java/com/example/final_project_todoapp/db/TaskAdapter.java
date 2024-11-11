@@ -23,7 +23,6 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.MyViewHolder> 
     private final DatabaseHelper databaseHelper;
     private final Context context;
 
-    // Constructor
     public TaskAdapter(List<Task> taskList, DatabaseHelper databaseHelper, Context context) {
         this.taskList = taskList;
         this.databaseHelper = databaseHelper;
@@ -41,32 +40,45 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.MyViewHolder> 
     public void onBindViewHolder(@NonNull MyViewHolder holder, int position) {
         Task task = taskList.get(position);
         holder.mcheckbox.setChecked(task.getStatus() == 1);
-        holder.taskName.setText(task.getName()); // Hiển thị tên nhiệm vụ trong TextView
+        holder.taskName.setText(task.getName());
 
-        // Xử lý sự kiện khi tích vào checkbox
+
         holder.mcheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             int newStatus = isChecked ? 1 : 0;
-            databaseHelper.updateTaskStatus(task.getId(), newStatus);
+            databaseHelper.updateTaskStatusByName(task.getName(), newStatus);
             task.setStatus(newStatus);
+            Toast.makeText(context, "Task status updated successfully", Toast.LENGTH_SHORT).show();
         });
 
-        // Xử lý sự kiện khi nhấn vào TextView để chỉnh sửa tên
         holder.taskName.setOnClickListener(v -> showEditDialog(task, position));
 
-        // Xử lý sự kiện khi nhấn vào icon xóa
-        holder.deleteIcon.setOnClickListener(v -> {
-            int taskId = task.getId();
-            databaseHelper.deleteTask(taskId); // Xóa nhiệm vụ khỏi cơ sở dữ liệu
-            taskList.remove(position); // Xóa nhiệm vụ khỏi danh sách
-            notifyItemRemoved(position);
-            notifyItemRangeChanged(position, taskList.size());
-        });
+
+        holder.deleteIcon.setOnClickListener(v -> showDeleteConfirmationDialog(task.getName(), position));
+
     }
 
     @Override
     public int getItemCount() {
         return taskList.size();
     }
+    private void showDeleteConfirmationDialog(String taskName, int position) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        builder.setTitle("Delete Task");
+        builder.setMessage("Are you sure you want to delete this task?");
+
+        builder.setPositiveButton("Yes", (dialog, which) -> {
+            databaseHelper.deleteTask(taskName);
+            taskList.remove(position);
+            notifyItemRemoved(position);
+            notifyItemRangeChanged(position, taskList.size());
+            Toast.makeText(context, "Task Deleted Successfully", Toast.LENGTH_SHORT).show();
+        });
+
+        builder.setNegativeButton("No", (dialog, which) -> dialog.cancel());
+
+        builder.show();
+    }
+
 
     // Hiển thị dialog chỉnh sửa tên nhiệm vụ
     private void showEditDialog(Task task, int position) {
@@ -79,11 +91,24 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.MyViewHolder> 
 
         builder.setPositiveButton("Save", (dialog, which) -> {
             String newName = input.getText().toString().trim();
+
             if (!newName.isEmpty()) {
-                databaseHelper.updateTaskName(task.getId(), newName); // Cập nhật tên nhiệm vụ trong cơ sở dữ liệu
-                task.setName(newName); // Cập nhật tên trong danh sách
-                notifyItemChanged(position); // Thông báo adapter cập nhật
-                Toast.makeText(context, "Task Update Successfully", Toast.LENGTH_SHORT).show();
+                boolean nameExists = false;
+                for (Task t : taskList) {
+                    if (t.getName().equals(newName) && t.getId() != task.getId()) {
+                        nameExists = true;
+                        break;
+                    }
+                }
+
+                if (nameExists) {
+                    Toast.makeText(context, "Task name already exists. Please choose another name.", Toast.LENGTH_SHORT).show();
+                } else {
+                    databaseHelper.updateTaskName(task.getName(), newName);
+                    task.setName(newName);
+                    notifyItemChanged(position);
+                    Toast.makeText(context, "Task Updated Successfully", Toast.LENGTH_SHORT).show();
+                }
             } else {
                 Toast.makeText(context, "Task name cannot be blank", Toast.LENGTH_SHORT).show();
             }
@@ -94,6 +119,8 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.MyViewHolder> 
         builder.show();
     }
 
+
+
     public static class MyViewHolder extends RecyclerView.ViewHolder {
         CheckBox mcheckbox;
         TextView taskName;
@@ -102,7 +129,7 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.MyViewHolder> 
         public MyViewHolder(@NonNull View itemView) {
             super(itemView);
             mcheckbox = itemView.findViewById(R.id.mcheckbox);
-            taskName = itemView.findViewById(R.id.task_name); // Tham chiếu đến TextView cho tên nhiệm vụ
+            taskName = itemView.findViewById(R.id.task_name);
             deleteIcon = itemView.findViewById(R.id.delete_icon);
         }
     }

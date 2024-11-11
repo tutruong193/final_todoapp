@@ -37,35 +37,38 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_NAME);
         onCreate(db);
     }
-    public void addTask(Task task){
-        SQLiteDatabase db = this.getWritableDatabase(); // Khởi tạo db
-        ContentValues values = new ContentValues();
-        values.put(COLUMN_TASK_NAME , task.getName());
-        values.put(COLUMN_STATUS , 0);
-        db.insert(TABLE_NAME , null , values);
-//        db.close();
-    }
-    public void deleteTask(int taskId) {
+    public void addTask(Task task) {
         SQLiteDatabase db = this.getWritableDatabase();
-        db.delete(TABLE_NAME, COLUMN_ID + "=?", new String[]{String.valueOf(taskId)});
-//        db.close();
+        Cursor cursor = db.query(TABLE_NAME, null, COLUMN_TASK_NAME + "=?", new String[]{task.getName()}, null, null, null);
+        if (cursor.getCount() > 0) {
+            cursor.close();
+        } else {
+            ContentValues values = new ContentValues();
+            values.put(COLUMN_TASK_NAME, task.getName());
+            values.put(COLUMN_STATUS, 0);
+            db.insert(TABLE_NAME, null, values);
+            cursor.close();
+        }
+    }
+    public void deleteTask(String taskName) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.delete(TABLE_NAME, COLUMN_TASK_NAME + "=?", new String[]{taskName});
     }
 
-    public void updateTaskName(int taskId, String newName) {
+    public void updateTaskName(String currentName, String newName) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(COLUMN_TASK_NAME, newName);
-        db.update(TABLE_NAME, values, COLUMN_ID + " = ?", new String[]{String.valueOf(taskId)});
-//        db.close();
+        db.update(TABLE_NAME, values, COLUMN_TASK_NAME + " = ?", new String[]{currentName});
     }
 
-    public void updateTaskStatus(int taskId, int status) {
+    public void updateTaskStatusByName(String taskName, int status) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(COLUMN_STATUS, status);
-        db.update(TABLE_NAME, values, COLUMN_ID + " = ?", new String[]{String.valueOf(taskId)});
-//        db.close();
+        db.update(TABLE_NAME, values, COLUMN_TASK_NAME + " = ?", new String[]{taskName});
     }
+
     public List<Task> getAllTasks(){
         ArrayList<Task> tasks = new ArrayList<>();
         SQLiteDatabase db = this.getWritableDatabase(); // Khởi tạo db
